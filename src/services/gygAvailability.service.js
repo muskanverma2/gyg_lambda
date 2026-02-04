@@ -134,7 +134,6 @@ const getAvailability = async (query) => {
     // ✅ Validation
     if (!productId || !fromDateTime) {
       return {
-        data: null,
         errorCode: 'VALIDATION_FAILURE',
         errorMessage: 'Missing required parameters.'
       };
@@ -146,7 +145,6 @@ const getAvailability = async (query) => {
 
     if (!product) {
       return {
-        data: null,
         errorCode: 'INVALID_PRODUCT',
         errorMessage: 'This activity should be deactivated; not sellable.'
       };
@@ -161,20 +159,17 @@ const getAvailability = async (query) => {
       return { data: { availabilities: [] } };
     }
 
-    console.log(availabilities, "Matched availabilities");
-
     if (!availabilities.length) {
       return { data: { availabilities: [] } };
     }
 
-    // ✅ Helper: ISO date WITHOUT milliseconds
+    // ✅ Helper
     const toIsoWithoutMillis = (date) =>
       new Date(date).toISOString().replace(/\.\d{3}Z$/, 'Z');
 
-    // ✅ API Response mapping
     const response = availabilities.map(a => ({
       productId: a.productId,
-      dateTime: toIsoWithoutMillis(a.startDate), // 🔥 FIXED FORMAT
+      dateTime: toIsoWithoutMillis(a.startDate),
       cutoffSeconds: a.bookingCutOffTime || 3600,
       currency: product.currency || 'EUR',
       pricesByCategory: {
@@ -191,7 +186,6 @@ const getAvailability = async (query) => {
   } catch (error) {
     console.error('getAvailability error:', error);
     return {
-      data: null,
       errorCode: 'VALIDATION_FAILURE',
       errorMessage: 'The request object contains invalid or inconsistent data.'
     };
@@ -220,9 +214,13 @@ const createReservation = async (input) => {
     } catch (err) {
       throw { errorCode: 'NO_AVAILABILITY', errorMessage: 'This activity is sold out; requested 3; available 0.' };
     }
-    if (!availabilities.length) {
-      return { data: { errorCode: 'NO_AVAILABILITY', errorMessage: 'No availability for the selected date.' } };
-    }
+   if (!availabilities.length) {
+  return {
+    errorCode: 'NO_AVAILABILITY',
+    errorMessage: 'No availability for the selected date.'
+  };
+}
+
 
     for (const item of bookingItems) {
       if (item.category === 'STUDENT') {
