@@ -32,11 +32,13 @@ const buildRetailPrices = (product) => {
 };
 
 
+
 // const getAvailability = async (query) => {
 //   try {
-//     let { productId, fromDateTime, toDateTime } = query;
-//     console.log("query-----------------------------",query)
-//     if (!productId || !fromDateTime || !toDateTime) {
+//     const { productId, fromDateTime } = query;
+//     console.log("query-----------------------------", query);
+
+//     if (!productId || !fromDateTime) {
 //       return {
 //         data: null,
 //         errorCode: 'VALIDATION_FAILURE',
@@ -44,39 +46,33 @@ const buildRetailPrices = (product) => {
 //       };
 //     }
 
-//     const startDate = dayjs.utc(fromDateTime.replace(' ', '+'));
-//     const endDate = dayjs.utc(toDateTime.replace(' ', '+'));
-//     if (!startDate.isValid() || !endDate.isValid()) {
-//       return { data: null, errorCode: 'VALIDATION_FAILURE', errorMessage: 'Invalid date format.' };
-//     }
+//     // Find product
+//     const product = await Recurrence.findOne({ productId });
+//     console.log("product-----------------------------", product);
 
-//     const product = await Recurrence.findOne({ productId: productId });
-//     console.log("product-----------------------------",product)
 //     if (!product) {
-//       return { errorCode: 'INVALID_PRODUCT', errorMessage:'This activity should be deactivated; not sellable.' };
+//       return {
+//         errorCode: 'INVALID_PRODUCT',
+//         errorMessage: 'This activity should be deactivated; not sellable.'
+//       };
 //     }
 
+//     // Get availabilities matching startDate
 //     let availabilities = [];
 //     try {
-//       availabilities = await getRecurrenceByProductId(productId,fromDateTime);
-      
+//       availabilities = await getRecurrenceByProductId(productId, fromDateTime);
 //     } catch (err) {
 //       return { data: { availabilities: [] } };
 //     }
 
-//     console.log(availabilities,"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+//     console.log(availabilities, "Matched availabilities");
+
 //     if (!availabilities.length) return { data: { availabilities: [] } };
 
-//     const now = dayjs.utc();
-//     const validAvailabilities = availabilities.filter(a => {
-//       if (!a.date || !a.bookingCutOffTime) return true;
-//       const cutoff = dayjs.utc(a.date).subtract(a.bookingCutOffTime, 'second');
-//       return now.isBefore(cutoff);
-//     });
-
-//     const response = validAvailabilities.map(a => ({
+//     // Map to API response
+//     const response = availabilities.map(a => ({
 //       productId: a.productId,
-//       dateTime: dayjs.utc(a.date).format('YYYY-MM-DDTHH:mm:ss[Z]'),
+//       dateTime: a.startDate, // string from DB
 //       cutoffSeconds: a.bookingCutOffTime || 3600,
 //       currency: product.currency || 'EUR',
 //       pricesByCategory: { retailPrices: buildRetailPrices(product) },
@@ -87,9 +83,14 @@ const buildRetailPrices = (product) => {
 //     }));
 
 //     return { data: { availabilities: response } };
+
 //   } catch (error) {
 //     console.error(error);
-//     return { data: null, errorCode: 'VALIDATION_FAILURE', errorMessage: 'The request object contains invalid or inconsistent data.' };
+//     return {
+//       data: null,
+//       errorCode: 'VALIDATION_FAILURE',
+//       errorMessage: 'The request object contains invalid or inconsistent data.'
+//     };
 //   }
 // };
 
@@ -98,6 +99,7 @@ const getAvailability = async (query) => {
     const { productId, fromDateTime } = query;
     console.log("query-----------------------------", query);
 
+    // ✅ Validation
     if (!productId || !fromDateTime) {
       return {
         data: null,
@@ -106,36 +108,46 @@ const getAvailability = async (query) => {
       };
     }
 
-    // Find product
+    // ✅ Find product
     const product = await Recurrence.findOne({ productId });
     console.log("product-----------------------------", product);
 
     if (!product) {
       return {
+        data: null,
         errorCode: 'INVALID_PRODUCT',
         errorMessage: 'This activity should be deactivated; not sellable.'
       };
     }
 
-    // Get availabilities matching startDate
+    // ✅ Get availabilities
     let availabilities = [];
     try {
       availabilities = await getRecurrenceByProductId(productId, fromDateTime);
     } catch (err) {
+      console.error('Error fetching availabilities:', err);
       return { data: { availabilities: [] } };
     }
 
     console.log(availabilities, "Matched availabilities");
 
-    if (!availabilities.length) return { data: { availabilities: [] } };
+    if (!availabilities.length) {
+      return { data: { availabilities: [] } };
+    }
 
-    // Map to API response
+    // ✅ Helper: ISO date WITHOUT milliseconds
+    const toIsoWithoutMillis = (date) =>
+      new Date(date).toISOString().replace(/\.\d{3}Z$/, 'Z');
+
+    // ✅ API Response mapping
     const response = availabilities.map(a => ({
       productId: a.productId,
-      dateTime: a.startDate, // string from DB
+      dateTime: toIsoWithoutMillis(a.startDate), // 🔥 FIXED FORMAT
       cutoffSeconds: a.bookingCutOffTime || 3600,
       currency: product.currency || 'EUR',
-      pricesByCategory: { retailPrices: buildRetailPrices(product) },
+      pricesByCategory: {
+        retailPrices: buildRetailPrices(product)
+      },
       vacanciesByCategory: [
         { category: 'ADULT', vacancies: 6 },
         { category: 'CHILD', vacancies: 4 }
@@ -145,7 +157,7 @@ const getAvailability = async (query) => {
     return { data: { availabilities: response } };
 
   } catch (error) {
-    console.error(error);
+    console.error('getAvailability error:', error);
     return {
       data: null,
       errorCode: 'VALIDATION_FAILURE',
