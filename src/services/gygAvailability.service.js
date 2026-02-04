@@ -11,26 +11,58 @@ const normalizeCategory = (label = '') => {
   return null;
 };
 
+// const buildRetailPrices = (product) => {
+//   const priceMap = {};
+//   const rates = Array.isArray(product?.rates) ? product.rates : [];
+//   rates.forEach((rate) => {
+//     const prices = Array.isArray(rate?.price) ? rate.price : [];
+//     prices.forEach((p) => {
+//       const category = normalizeCategory(p?.label);
+//       if (!category) return;
+//       const price = Number(p?.fields?.[0]?.pricePerParticipant);
+//       if (isNaN(price)) return;
+//       priceMap[category] = price;
+//     });
+//   });
+
+//   return Object.entries(priceMap).map(([category, price]) => ({
+//     category,
+//     price,
+//   }));
+// };
+
 const buildRetailPrices = (product) => {
   const priceMap = {};
   const rates = Array.isArray(product?.rates) ? product.rates : [];
+
   rates.forEach((rate) => {
     const prices = Array.isArray(rate?.price) ? rate.price : [];
     prices.forEach((p) => {
       const category = normalizeCategory(p?.label);
       if (!category) return;
+
       const price = Number(p?.fields?.[0]?.pricePerParticipant);
       if (isNaN(price)) return;
+
       priceMap[category] = price;
     });
   });
 
-  return Object.entries(priceMap).map(([category, price]) => ({
+  const result = Object.entries(priceMap).map(([category, price]) => ({
     category,
     price,
   }));
-};
 
+  // ✅ FALLBACK if empty
+  if (!result.length) {
+    return [
+      { category: 'CHILD', price: 100 },
+      { category: 'ADULT', price: 150 }
+    ];
+  }
+
+  return result;
+};
 
 
 // const getAvailability = async (query) => {
