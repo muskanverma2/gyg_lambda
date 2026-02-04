@@ -1,0 +1,35 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: lam_Gyg - Express API on AWS Lambda
+
+Globals:
+  Function:
+    Runtime: nodejs20.x
+    Timeout: 30
+    MemorySize: 512
+
+Resources:
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: src/lambda.handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+      Environment:
+        Variables:
+          # Set this in your deployment environment (sam deploy --guided)
+          # or in the AWS Console/Parameter Store
+          MONGO_URI: ""
+      Events:
+        HttpApi:
+          Type: HttpApi
+          Properties:
+            Path: /{proxy+}
+            Method: ANY
+
+Outputs:
+  HttpApiUrl:
+    Description: HTTP API base URL
+    Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+

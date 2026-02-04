@@ -1,0 +1,12 @@
+const express = require('express');
+const gygAvailabilityController = require('../../controllers/gygAvailability.controller');
+const router = express.Router();
+router.get('/1/get-availabilities',gygAvailabilityController.getAvailability);
+router.post('/1/reserve', gygAvailabilityController.create);
+router.post('/hard', gygAvailabilityController.createGYGAvailability);
+router.post('/hardone', gygAvailabilityController.createGYGAvailabilityone);
+router.post('/1/cancel-reservation', gygAvailabilityController.cancelReservation); 
+router.post('/1/book', gygAvailabilityController.createBooking);
+router.post('/1/cancel-booking', gygAvailabilityController.cancelBooking);
+router.get('/gyg-bookings',gygAvailabilityController.getAllGygBookings);
+module.exports = router;
