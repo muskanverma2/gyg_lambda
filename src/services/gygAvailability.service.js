@@ -214,12 +214,20 @@ const createReservation = async (input) => {
     } catch (err) {
       throw { errorCode: 'NO_AVAILABILITY', errorMessage: 'This activity is sold out; requested 3; available 0.' };
     }
-   if (!availabilities.length) {
-  return {
+//    if (!availabilities.length) {
+//   return {
+//     errorCode: 'NO_AVAILABILITY',
+//     errorMessage: 'No availability for the selected date.'
+//   };
+// }
+if (!availabilities.length) {
+  throw {
+    statusCode: 400,
     errorCode: 'NO_AVAILABILITY',
-    errorMessage: 'No availability for the selected date.'
+    errorMessage: 'This activity is sold out; requested 3; available 0.'
   };
 }
+
 
 
     for (const item of bookingItems) {
