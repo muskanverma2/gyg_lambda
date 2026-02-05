@@ -12,19 +12,7 @@ const createRecurrence = async (data) => {
     }
 };
 
-// const updateRecurrenceById = async (id, updateData) => {
-//     try {
-//         const recurrence = await Recurrence.findById(id);
-//         if (!recurrence) {
-//             throw new Error('Recurrence not found');
-//         }
-//         Object.assign(recurrence, updateData); // Apply updates
-//         await recurrence.save();
-//         return recurrence;
-//     } catch (error) {
-//         throw new Error(error.message);
-//     }
-// };
+
 
 const updateRecurrenceBySyncId = async (
   syncId,
@@ -98,41 +86,53 @@ const deleteRecurrenceByProductId = async (productId) => {
 };
 
 
-// const getRecurrenceByProductId = async (productId) => {
-//     try {
-//         const recurrences = await Recurrence.find({ productId, status: true }).lean();
-//         if (!recurrences || recurrences.length === 0) {
-//             throw new Error('RecurrenceProduct not found');
-//         }
-//         return recurrences;
-//     } catch (error) {
-//         throw new Error(error.message);
-//     }
+
+// const getRecurrenceByProductId = async (productId, fromDateTime) => {
+//   try {
+//     if (!fromDateTime) throw new Error("Missing fromDateTime");
+
+//     // Extract only the date part (YYYY-MM-DD) from payload
+//     const queryDate = fromDateTime.split('T')[0]; // "2025-03-27"
+
+//     // Match string in DB starting with this date
+//     const recurrences = await Recurrence.find({
+//       productId,
+//       status: true,
+//       startDate: { $regex: `^${queryDate}` } // matches "2025-03-27T..."
+//     }).lean();
+
+//     return recurrences; // empty array if no match
+//   } catch (error) {
+//     throw new Error(error.message);
+//   }
 // };
 
-const getRecurrenceByProductId = async (productId, fromDateTime) => {
+
+const getRecurrenceByProductId = async (
+  productId,
+  fromDateTime,
+  toDateTime
+) => {
   try {
-    if (!fromDateTime) throw new Error("Missing fromDateTime");
+    if (!fromDateTime || !toDateTime) {
+      throw new Error("Missing date range");
+    }
 
-    // Extract only the date part (YYYY-MM-DD) from payload
-    const queryDate = fromDateTime.split('T')[0]; // "2025-03-27"
+    const fromDate = fromDateTime.split('T')[0];
+    const toDate   = toDateTime.split('T')[0];
 
-    // Match string in DB starting with this date
     const recurrences = await Recurrence.find({
       productId,
       status: true,
-      startDate: { $regex: `^${queryDate}` } // matches "2025-03-27T..."
+      startDate: { $lte: `${fromDate}T23:59:59.999Z` },
+      endDate:   { $gte: `${toDate}T00:00:00.000Z` }
     }).lean();
 
-    return recurrences; // empty array if no match
+    return recurrences;
   } catch (error) {
     throw new Error(error.message);
   }
 };
-
-
-
-
 
 
 const getRecurrenceBySyncId = async (syncId) => {

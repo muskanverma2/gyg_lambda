@@ -65,70 +65,11 @@ const buildRetailPrices = (product) => {
 };
 
 
-// const getAvailability = async (query) => {
-//   try {
-//     const { productId, fromDateTime } = query;
-//     console.log("query-----------------------------", query);
 
-//     if (!productId || !fromDateTime) {
-//       return {
-//         data: null,
-//         errorCode: 'VALIDATION_FAILURE',
-//         errorMessage: 'Missing required parameters.'
-//       };
-//     }
-
-//     // Find product
-//     const product = await Recurrence.findOne({ productId });
-//     console.log("product-----------------------------", product);
-
-//     if (!product) {
-//       return {
-//         errorCode: 'INVALID_PRODUCT',
-//         errorMessage: 'This activity should be deactivated; not sellable.'
-//       };
-//     }
-
-//     // Get availabilities matching startDate
-//     let availabilities = [];
-//     try {
-//       availabilities = await getRecurrenceByProductId(productId, fromDateTime);
-//     } catch (err) {
-//       return { data: { availabilities: [] } };
-//     }
-
-//     console.log(availabilities, "Matched availabilities");
-
-//     if (!availabilities.length) return { data: { availabilities: [] } };
-
-//     // Map to API response
-//     const response = availabilities.map(a => ({
-//       productId: a.productId,
-//       dateTime: a.startDate, // string from DB
-//       cutoffSeconds: a.bookingCutOffTime || 3600,
-//       currency: product.currency || 'EUR',
-//       pricesByCategory: { retailPrices: buildRetailPrices(product) },
-//       vacanciesByCategory: [
-//         { category: 'ADULT', vacancies: 6 },
-//         { category: 'CHILD', vacancies: 4 }
-//       ]
-//     }));
-
-//     return { data: { availabilities: response } };
-
-//   } catch (error) {
-//     console.error(error);
-//     return {
-//       data: null,
-//       errorCode: 'VALIDATION_FAILURE',
-//       errorMessage: 'The request object contains invalid or inconsistent data.'
-//     };
-//   }
-// };
 
 const getAvailability = async (query) => {
   try {
-    const { productId, fromDateTime } = query;
+    const { productId, fromDateTime,toDateTime } = query;
     console.log("query-----------------------------", query);
 
     // ✅ Validation
@@ -153,7 +94,7 @@ const getAvailability = async (query) => {
     // ✅ Get availabilities
     let availabilities = [];
     try {
-      availabilities = await getRecurrenceByProductId(productId, fromDateTime);
+      availabilities = await getRecurrenceByProductId(productId, fromDateTime,toDateTime);
     } catch (err) {
       console.error('Error fetching availabilities:', err);
       return { data: { availabilities: [] } };
@@ -162,7 +103,7 @@ const getAvailability = async (query) => {
     if (!availabilities.length) {
       return { data: { availabilities: [] } };
     }
-
+     console.log("availabilities---------------------------------",availabilities)
     // ✅ Helper
     const toIsoWithoutMillis = (date) =>
       new Date(date).toISOString().replace(/\.\d{3}Z$/, 'Z');
@@ -194,7 +135,7 @@ const getAvailability = async (query) => {
 
 
 
-// Create a reservation
+
 const createReservation = async (input) => {
   try {
     const body = input?.data || input;
