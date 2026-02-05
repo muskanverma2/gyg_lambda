@@ -208,6 +208,7 @@ const createReservation = async (input) => {
     const body = input?.data || input;
     const { productId, dateTime, bookingItems, gygBookingReference } = body;
     const startDate = dayjs.utc(dateTime.replace(' ', '+'));
+    const endDate = dayjs.utc(dateTime.replace(' ', '+'));
 
     if (!productId || !dateTime || !Array.isArray(bookingItems) || !bookingItems.length) {
       throw {
@@ -230,7 +231,7 @@ const createReservation = async (input) => {
       availabilities = await getRecurrenceByProductId(
         productId,
         startDate.toISOString(),
-        startDate.toISOString()
+        endDate.toISOString()
       );
     } catch {
       throw {
