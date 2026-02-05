@@ -136,6 +136,73 @@ const getAvailability = async (query) => {
 
 
 
+// const createReservation = async (input) => {
+//   try {
+//     const body = input?.data || input;
+//     const { productId, dateTime, bookingItems, gygBookingReference } = body;
+//     const startDate = dayjs.utc(dateTime.replace(' ', '+'));
+
+//     if (!productId || !dateTime || !Array.isArray(bookingItems) || !bookingItems.length) {
+//       throw { statusCode: 400, errorCode: 'VALIDATION_FAILURE', errorMessage: 'Missing required parameters.' };
+//     }
+
+//     const product = await Recurrence.findOne({ productId: productId });
+//     if (!product) throw { errorCode:"INVALID_PRODUCT", errorMessage:"This activity should be deactivated; not sellable." };
+
+//     let availabilities = [];
+//     try {
+//       availabilities = await getRecurrenceByProductId(productId, startDate.toISOString(), startDate.toISOString());
+//     } catch (err) {
+//       throw { errorCode: 'NO_AVAILABILITY', errorMessage: 'This activity is sold out; requested 3; available 0.' };
+//     }
+// //    if (!availabilities.length) {
+// //   return {
+// //     errorCode: 'NO_AVAILABILITY',
+// //     errorMessage: 'No availability for the selected date.'
+// //   };
+// // }
+// if (!availabilities.length) {
+//   throw {
+//     statusCode: 400,
+//     errorCode: 'NO_AVAILABILITY',
+//     errorMessage: 'This activity is sold out; requested 3; available 0.'
+//   };
+// }
+
+
+
+//     for (const item of bookingItems) {
+//       if (item.category === 'STUDENT') {
+//         throw { statusCode: 400, errorCode: 'INVALID_TICKET_CATEGORY', errorMessage: 'Ticket category STUDENT is not supported for this product', ticketCategory: 'STUDENT' };
+//       }
+//     }
+
+//     const maxAllowed = product.maxParticipants ?? 3;
+//     const totalParticipants = bookingItems.reduce((sum, item) => sum + Number(item.count || 0), 0);
+//     if (totalParticipants > maxAllowed) {
+//       throw { statusCode: 400, errorCode: 'INVALID_PARTICIPANTS_CONFIGURATION', errorMessage: `Maximum ${maxAllowed} participants allowed.`, participantsConfiguration: { min: 1, max: maxAllowed } };
+//     }
+
+//     const reservationReference = `GYG${Date.now()}${Math.floor(Math.random() * 10000)}`;
+
+//     await GygReserve.create({
+//       productId,
+//       dateTime,
+//       bookingItems,
+//       reservationReference,
+//       gygBookingReference
+//     });
+
+//     return {
+//       reservationReference,
+//       reservationExpiration: new Date(Date.now() + 15 * 60 * 1000).toISOString().replace(/\.\d{3}Z$/, 'Z')
+//     };
+//   } catch (err) {
+//     console.error('GYG reservation error:', err);
+//     throw err;
+//   }
+// };
+
 const createReservation = async (input) => {
   try {
     const body = input?.data || input;
@@ -143,49 +210,74 @@ const createReservation = async (input) => {
     const startDate = dayjs.utc(dateTime.replace(' ', '+'));
 
     if (!productId || !dateTime || !Array.isArray(bookingItems) || !bookingItems.length) {
-      throw { statusCode: 400, errorCode: 'VALIDATION_FAILURE', errorMessage: 'Missing required parameters.' };
+      throw {
+        statusCode: 400,
+        errorCode: 'VALIDATION_FAILURE',
+        errorMessage: 'Missing required parameters.'
+      };
     }
 
-    const product = await Recurrence.findOne({ productId: productId });
-    if (!product) throw { errorCode:"INVALID_PRODUCT", errorMessage:"This activity should be deactivated; not sellable." };
+    const product = await Recurrence.findOne({ productId });
+    if (!product) {
+      throw {
+        errorCode: 'INVALID_PRODUCT',
+        errorMessage: 'This activity should be deactivated; not sellable.'
+      };
+    }
 
-    let availabilities = [];
+    let availabilities;
     try {
-      availabilities = await getRecurrenceByProductId(productId, startDate.toISOString(), startDate.toISOString());
-    } catch (err) {
-      throw { errorCode: 'NO_AVAILABILITY', errorMessage: 'This activity is sold out; requested 3; available 0.' };
+      availabilities = await getRecurrenceByProductId(
+        productId,
+        startDate.toISOString(),
+        startDate.toISOString()
+      );
+    } catch {
+      throw {
+        statusCode: 400,
+        errorCode: 'NO_AVAILABILITY',
+        errorMessage: 'This activity is sold out; requested 3; available 0.'
+      };
     }
-//    if (!availabilities.length) {
-//   return {
-//     errorCode: 'NO_AVAILABILITY',
-//     errorMessage: 'No availability for the selected date.'
-//   };
-// }
-if (!availabilities.length) {
-  throw {
-    statusCode: 400,
-    errorCode: 'NO_AVAILABILITY',
-    errorMessage: 'This activity is sold out; requested 3; available 0.'
-  };
-}
 
-
+    if (!availabilities.length) {
+      throw {
+        statusCode: 400,
+        errorCode: 'NO_AVAILABILITY',
+        errorMessage: 'This activity is sold out; requested 3; available 0.'
+      };
+    }
 
     for (const item of bookingItems) {
       if (item.category === 'STUDENT') {
-        throw { statusCode: 400, errorCode: 'INVALID_TICKET_CATEGORY', errorMessage: 'Ticket category STUDENT is not supported for this product', ticketCategory: 'STUDENT' };
+        throw {
+          statusCode: 400,
+          errorCode: 'INVALID_TICKET_CATEGORY',
+          errorMessage: 'Ticket category STUDENT is not supported for this product',
+          ticketCategory: 'STUDENT'
+        };
       }
     }
 
     const maxAllowed = product.maxParticipants ?? 3;
-    const totalParticipants = bookingItems.reduce((sum, item) => sum + Number(item.count || 0), 0);
+    const totalParticipants = bookingItems.reduce(
+      (sum, item) => sum + Number(item.count || 0),
+      0
+    );
+
     if (totalParticipants > maxAllowed) {
-      throw { statusCode: 400, errorCode: 'INVALID_PARTICIPANTS_CONFIGURATION', errorMessage: `Maximum ${maxAllowed} participants allowed.`, participantsConfiguration: { min: 1, max: maxAllowed } };
+      throw {
+        statusCode: 400,
+        errorCode: 'INVALID_PARTICIPANTS_CONFIGURATION',
+        errorMessage: `Maximum ${maxAllowed} participants allowed.`,
+        participantsConfiguration: { min: 1, max: maxAllowed }
+      };
     }
 
     const reservationReference = `GYG${Date.now()}${Math.floor(Math.random() * 10000)}`;
 
-    await GygReserve.create({
+    // Persist the reservation and wait for it
+    const newReservation = await GygReserve.create({
       productId,
       dateTime,
       bookingItems,
@@ -193,15 +285,22 @@ if (!availabilities.length) {
       gygBookingReference
     });
 
+    if (!newReservation) {
+      throw new Error('Reservation creation failed');
+    }
+
     return {
       reservationReference,
-      reservationExpiration: new Date(Date.now() + 15 * 60 * 1000).toISOString().replace(/\.\d{3}Z$/, 'Z')
+      reservationExpiration: new Date(Date.now() + 15 * 60 * 1000)
+        .toISOString()
+        .replace(/\.\d{3}Z$/, 'Z')
     };
   } catch (err) {
     console.error('GYG reservation error:', err);
     throw err;
   }
 };
+
 
 // Create hardcoded GYG availability
 const createGYGAvailability = async () => ({
@@ -232,31 +331,97 @@ const cancelReservation = async (data) => ({
 });
 
 // Create a booking
+// const createBooking = async (bookingData) => {
+//   try {
+//     const payload = bookingData?.data;
+//     if (!payload) throw new Error('Missing data object');
+//     const { gygBookingReference, bookingItems } = payload;
+//     if (!Array.isArray(bookingItems) || !bookingItems.length) throw new Error('bookingItems must be a non-empty array');
+
+//     let ticketIndex = 1;
+//     const tickets = [];
+//     bookingItems.forEach(item => {
+//       for (let i = 0; i < Number(item.count); i++) {
+//         tickets.push({ category: item.category, ticketCode: `code${String(ticketIndex).padStart(3,'0')}`, ticketCodeType: 'QR_CODE' });
+//         ticketIndex++;
+//       }
+//     });
+
+//     const bookingReference = `bk${Date.now()}`;
+//     await GygBooking.create({ ...payload, gygBookingReference, bookingReference, tickets });
+
+//     return { data: { bookingReference, tickets } };
+//   } catch (error) {
+//     console.error(error);
+//     throw new Error('Error creating GYG booking: ' + error.message);
+//   }
+// };
+
 const createBooking = async (bookingData) => {
   try {
     const payload = bookingData?.data;
     if (!payload) throw new Error('Missing data object');
-    const { gygBookingReference, bookingItems } = payload;
-    if (!Array.isArray(bookingItems) || !bookingItems.length) throw new Error('bookingItems must be a non-empty array');
 
+    const { reservationReference, gygBookingReference, bookingItems } = payload;
+
+    if (!reservationReference) {
+      throw new Error('Missing reservationReference');
+    }
+
+    if (!Array.isArray(bookingItems) || !bookingItems.length) {
+      throw new Error('bookingItems must be a non-empty array');
+    }
+
+    // 🔑 Wait for reservation to exist
+    const reservation = await GygReserve.findOne({ reservationReference });
+    if (!reservation) {
+      throw new Error('Invalid or expired reservationReference');
+    }
+
+    // Generate tickets
     let ticketIndex = 1;
     const tickets = [];
     bookingItems.forEach(item => {
       for (let i = 0; i < Number(item.count); i++) {
-        tickets.push({ category: item.category, ticketCode: `code${String(ticketIndex).padStart(3,'0')}`, ticketCodeType: 'QR_CODE' });
+        tickets.push({
+          category: item.category,
+          ticketCode: `code${String(ticketIndex).padStart(3, '0')}`,
+          ticketCodeType: 'QR_CODE'
+        });
         ticketIndex++;
       }
     });
 
     const bookingReference = `bk${Date.now()}`;
-    await GygBooking.create({ ...payload, gygBookingReference, bookingReference, tickets });
 
-    return { data: { bookingReference, tickets } };
+    // 🔑 Persist booking WITH reservationReference
+    const bookingSaved = await GygBooking.create({
+      ...payload,
+      bookingReference,
+      reservationReference,
+      tickets
+    });
+
+    if (!bookingSaved) {
+      throw new Error('Booking creation failed');
+    }
+
+    // 🔑 Now consume reservation (after booking is fully saved)
+    await GygReserve.deleteOne({ reservationReference });
+
+    return {
+      data: {
+        bookingReference,
+        reservationReference,
+        tickets
+      }
+    };
   } catch (error) {
-    console.error(error);
+    console.error('Create Booking Error:', error);
     throw new Error('Error creating GYG booking: ' + error.message);
   }
 };
+
 
 // Cancel a booking
 const cancelBooking = async (body) => {

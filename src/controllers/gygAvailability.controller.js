@@ -21,6 +21,7 @@ const create = async (req, res) => {
   try {
     const requestData = req.body?.data || req.body;
     const reservation = await gygAvailabilityService.createReservation(requestData);
+    console.log("reservation------------------------------------",reservation)
 
     return res.status(200).json({ data: reservation });
   } catch (error) {
@@ -85,6 +86,7 @@ const cancelReservation = async (req, res) => {
 const createBooking = async (req, res) => {
   try {
     const bookingData = req.body;
+    console.log("bookingData-----------------------------",bookingData)
     const newBooking = await gygAvailabilityService.createBooking(bookingData);
     return res.status(200).json(newBooking);
   } catch (error) {

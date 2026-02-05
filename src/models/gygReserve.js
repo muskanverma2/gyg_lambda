@@ -3,10 +3,10 @@ const { Schema } = mongoose;
 
 const gygReserveSchema = new Schema(
   {
-   productId: {
-  type: String,
-  default: null,
-},
+    productId: {
+      type: String,
+      default: null,
+    },
     gygBookingReference: {
       type: String,
       default: null,
@@ -19,6 +19,10 @@ const gygReserveSchema = new Schema(
       type: Schema.Types.Mixed,
       default: null,
     },
+    reservationReference: { 
+      type: String, 
+      required: true 
+    }, // ✅ Add this
     status: {
       type: Boolean,
       default: true,
@@ -26,8 +30,8 @@ const gygReserveSchema = new Schema(
   },
   {
     collection: "gygReserve",
-    timestamps: true, 
-  }
+    timestamps: true,
+  },
 );
 
 const GygReserve = mongoose.model("GygReserve", gygReserveSchema);
